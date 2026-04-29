@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/tracking",
+      "schedule": "0 2 * * *"
+    }
+  ],
+  "functions": {
+    "app/api/cron/tracking/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/tracking/run/route.ts": {
+      "maxDuration": 300
+    }
+  }
+}
