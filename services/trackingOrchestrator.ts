@@ -272,7 +272,7 @@ export async function runTrackingJob(
         .from('alumni_profiles')
         .select('*')
         .in('id', alumniIds)
-        .limit(20);
+        .limit(50);
       alumni = (data ?? []) as AlumniProfile[];
     } else {
       // ── Strategi 2-pass agar selalu dapat 20 alumni ──────────────────
@@ -281,12 +281,12 @@ export async function runTrackingJob(
       if (graduationYears && graduationYears.length > 0) {
         baseQuery = baseQuery.in('graduation_year', graduationYears);
       }
-      const { data: neverTracked } = await baseQuery.limit(20);
+      const { data: neverTracked } = await baseQuery.limit(50);
       alumni = (neverTracked ?? []) as AlumniProfile[];
 
       // Pass 2: kalau kurang dari 20, tambah dari yang paling lama ditrack
-      if (alumni.length < 20) {
-        const remaining = 20 - alumni.length;
+      if (alumni.length < 50) {
+        const remaining = 50 - alumni.length;
         const excludeIds = alumni.map(a => a.id);
         let oldQuery = supabase
           .from('alumni_profiles')
