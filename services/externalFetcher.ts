@@ -269,7 +269,7 @@ JSON Output:
         const errText = await res.text();
         if (res.status === 429) {
           console.warn(`[Gemini] 429${keyInfo} → pindah key berikutnya...`);
-          await sleep(20000); // rotation sudah handle — jeda kecil saja
+          await sleep(8000); // rotation sudah handle — jeda kecil saja
           continue;
         }
         throw new Error(`HTTP ${res.status}: ${errText}`);
