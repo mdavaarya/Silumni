@@ -248,6 +248,13 @@ ATURAN:
 JSON Output:
 {"found_name":null,"linkedin_url":null,"instagram_url":null,"facebook_url":null,"tiktok_url":null,"email":null,"phone":null,"company":null,"work_address":null,"position":null,"employment_type":null,"company_social_media":null}`;
 
+  // Coba maksimal 2 putaran: putaran pertama langsung, putaran kedua setelah tunggu 65 detik
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt === 1) {
+      console.warn(`[Gemini] Semua key 429 — tunggu 80 detik lalu retry untuk ${name}...`);
+      await sleep(80000);
+    }
+
   const startIdx = geminiIdx % keys.length;
   for (let offset = 0; offset < keys.length; offset++) {
     const i = (startIdx + offset) % keys.length;
@@ -269,7 +276,7 @@ JSON Output:
         const errText = await res.text();
         if (res.status === 429) {
           console.warn(`[Gemini] 429${keyInfo} → pindah key berikutnya...`);
-          await sleep(8000); // rotation sudah handle — jeda kecil saja
+          await sleep(8000);
           continue;
         }
         throw new Error(`HTTP ${res.status}: ${errText}`);
@@ -296,7 +303,7 @@ JSON Output:
       }
 
       setCachedResult(cacheKey, parsed);
-      geminiIdx = i + 1; // geser index untuk alumni berikutnya
+      geminiIdx = i + 1;
       console.log(`[Gemini] OK${keyInfo} for ${name} — context: ${hasContext ? 'web' : 'standalone'}`);
       return parsed;
 
@@ -304,8 +311,11 @@ JSON Output:
       console.warn(`[Gemini] Error${keyInfo}:`, err.message);
       return null;
     }
-  }
+  } // end inner key loop
 
+  } // end attempt loop
+
+  console.warn(`[Gemini] Semua key tetap 429 setelah retry — skip ${name}`);
   return null;
 }
 
