@@ -272,7 +272,7 @@ export async function runTrackingJob(
         .from('alumni_profiles')
         .select('*')
         .in('id', alumniIds)
-        .limit(100);
+        .limit(20);
       alumni = (data ?? []) as AlumniProfile[];
     } else {
       // ── Strategi 2-pass agar selalu dapat 20 alumni ──────────────────
@@ -281,7 +281,7 @@ export async function runTrackingJob(
       if (graduationYears && graduationYears.length > 0) {
         baseQuery = baseQuery.in('graduation_year', graduationYears);
       }
-      const { data: neverTracked } = await baseQuery.limit(100);
+      const { data: neverTracked } = await baseQuery.limit(20);
       alumni = (neverTracked ?? []) as AlumniProfile[];
 
       // Pass 2: kalau kurang dari 20, tambah dari yang paling lama ditrack
