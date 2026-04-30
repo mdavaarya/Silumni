@@ -85,6 +85,14 @@ export async function runTrackingForAlumni(
         executed_at: new Date().toISOString(),
       });
 
+      // ── Cek cancel sebelum Gemini (bisa lama karena 429 retry) ──
+      const { data: preGeminiCheck } = await supabase
+        .from('tracking_jobs').select('status').eq('id', jobId).single();
+      if (preGeminiCheck?.status === 'cancelled') {
+        console.log(`[Tracking] Job cancelled — skip ${alumni.full_name}`);
+        return { status: 'cancelled', confidence: 0 };
+      }
+
       const geminiResults = await fetchFromGemini(
         alumni.full_name,
         alumni.study_program,
@@ -272,7 +280,7 @@ export async function runTrackingJob(
         .from('alumni_profiles')
         .select('*')
         .in('id', alumniIds)
-        .limit(50);
+        .limit(40);
       alumni = (data ?? []) as AlumniProfile[];
     } else {
       // ── Strategi 2-pass agar selalu dapat 20 alumni ──────────────────
@@ -281,12 +289,12 @@ export async function runTrackingJob(
       if (graduationYears && graduationYears.length > 0) {
         baseQuery = baseQuery.in('graduation_year', graduationYears);
       }
-      const { data: neverTracked } = await baseQuery.limit(50);
+      const { data: neverTracked } = await baseQuery.limit(40);
       alumni = (neverTracked ?? []) as AlumniProfile[];
 
       // Pass 2: kalau kurang dari 20, tambah dari yang paling lama ditrack
-      if (alumni.length < 50) {
-        const remaining = 50 - alumni.length;
+      if (alumni.length < 40) {
+        const remaining = 40 - alumni.length;
         const excludeIds = alumni.map(a => a.id);
         let oldQuery = supabase
           .from('alumni_profiles')
@@ -325,6 +333,10 @@ export async function runTrackingJob(
       const a = alumni[i];
       try {
         const { status } = await runTrackingForAlumni(a, job.id);
+        if (status === 'cancelled') {
+          console.log(`[TrackingJob] Alumni ${a.full_name} di-skip karena job cancelled`);
+          break;
+        }
         if (status === 'identified')        identified++;
         else if (status === 'needs_review') needsReview++;
         else                                notFound++;
