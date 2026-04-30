@@ -252,7 +252,7 @@ JSON Output:
   for (let attempt = 0; attempt < 2; attempt++) {
     if (attempt === 1) {
       console.warn(`[Gemini] Semua key 429 — tunggu 60 detik lalu retry untuk ${name}...`);
-      await sleep(60000);
+      return null;
     }
 
   const startIdx = geminiIdx % keys.length;
