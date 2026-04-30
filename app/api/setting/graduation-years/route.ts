@@ -1,38 +1,32 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseAdminClient } from '@/lib/supabaseServer';
+import { NextResponse } from 'next/server';
+import { createSupabaseServerClient, createSupabaseAdminClient } from '@/lib/supabaseServer';
 
-// GET — ambil graduation_years dari DB
 export async function GET() {
-  try {
-    const admin = createSupabaseAdminClient();
-    const { data, error } = await admin
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'graduation_years')
-      .single();
+  const supabase = createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (error || !data) return NextResponse.json({ years: [] });
-    return NextResponse.json({ years: data.value as number[] });
-  } catch {
-    return NextResponse.json({ years: [] });
-  }
-}
+  const { data: userData } = await supabase.from('users').select('role').eq('id', user.id).single();
+  if (userData?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-// POST — simpan graduation_years ke DB
-export async function POST(req: NextRequest) {
-  try {
-    const { years } = await req.json();
-    if (!Array.isArray(years)) {
-      return NextResponse.json({ error: 'Invalid years format' }, { status: 400 });
-    }
-    const admin = createSupabaseAdminClient();
-    const { error } = await admin
-      .from('app_settings')
-      .upsert({ key: 'graduation_years', value: years, updated_at: new Date().toISOString() });
+  const admin = createSupabaseAdminClient();
 
-    if (error) throw error;
-    return NextResponse.json({ success: true, years });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+  const [
+    { count: identified },
+    { count: needsReview },
+    { count: notFound },
+    { count: total },
+  ] = await Promise.all([
+    admin.from('tracking_results').select('*', { count: 'exact', head: true }).eq('tracking_status', 'identified').eq('is_latest', true),
+    admin.from('tracking_results').select('*', { count: 'exact', head: true }).eq('tracking_status', 'needs_review').eq('is_latest', true),
+    admin.from('tracking_results').select('*', { count: 'exact', head: true }).eq('tracking_status', 'not_found').eq('is_latest', true),
+    admin.from('tracking_results').select('*', { count: 'exact', head: true }).eq('is_latest', true),
+  ]);
+
+  return NextResponse.json({
+    identified:  identified  ?? 0,
+    needsReview: needsReview ?? 0,
+    notFound:    notFound    ?? 0,
+    total:       total       ?? 0,
+  });
 }
