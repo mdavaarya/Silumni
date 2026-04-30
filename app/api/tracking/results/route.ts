@@ -34,7 +34,27 @@ export async function GET(req: NextRequest) {
 
   if (status) query = query.eq('match_status', status);
 
-  const { data, error } = await query.limit(1000);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json(data || []);
+  // Support pagination
+  const page     = parseInt(req.nextUrl.searchParams.get('page') ?? '1', 10);
+  const pageSize = parseInt(req.nextUrl.searchParams.get('pageSize') ?? '1000', 10);
+  const from     = (page - 1) * pageSize;
+  const to       = from + pageSize - 1;
+
+  // Get total count
+  // Hitung total dengan query terpisah (tanpa join berat)
+  const countQuery = supabase
+    .from('tracking_results')
+    .select('*', { count: 'exact', head: true });
+
+  // Apply filter yang sama
+  if (job_id) countQuery.eq('job_id', job_id);
+  if (alumni_id) countQuery.eq('alumni_id', alumni_id);
+  if (status) countQuery.eq('match_status', status);
+
+  const { count } = await countQuery;
+
+  // Lanjut fetch data seperti biasa
+    const { data, error } = await query.range(from, to);
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ data: data || [], total: count ?? 0, page, pageSize });
 }

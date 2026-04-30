@@ -251,7 +251,7 @@ JSON Output:
   // Coba maksimal 2 putaran: putaran pertama langsung, putaran kedua setelah tunggu 65 detik
   for (let attempt = 0; attempt < 2; attempt++) {
     if (attempt === 1) {
-      console.warn(`[Gemini] Semua key 429 — tunggu 80 detik lalu retry untuk ${name}...`);
+      console.warn(`[Gemini] Semua key 429 — tunggu 60 detik lalu retry untuk ${name}...`);
       await sleep(60000);
     }
 

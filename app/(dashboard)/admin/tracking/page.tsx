@@ -78,6 +78,7 @@ const PAGE_SIZE = 15;
 export default function AdminTrackingPage() {
   const [jobs,       setJobs]       = useState<TrackingJob[]>([]);
   const [results,    setResults]    = useState<ExtendedResult[]>([]);
+  const [totalTracked, setTotalTracked] = useState<number>(0);
   const [selected,   setSelected]   = useState<ExtendedResult | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [running,    setRunning]    = useState(false);
@@ -108,7 +109,10 @@ export default function AdminTrackingPage() {
         fetch(resultsUrl).then(r => r.json()),
       ]);
       setJobs(Array.isArray(jobsRes) ? jobsRes : []);
-      setResults(Array.isArray(resultsRes) ? resultsRes : []);
+      // API sekarang return { data, total } — backward compat jika masih array
+      const resultsData = Array.isArray(resultsRes) ? resultsRes : (resultsRes?.data ?? []);
+      setTotalTracked(resultsRes?.total ?? resultsData.length);
+      setResults(resultsData);
       setLoading(false);
 
       const hasRunning = (Array.isArray(jobsRes) ? jobsRes : []).some((j: TrackingJob) => j.status === 'running');
@@ -266,7 +270,7 @@ export default function AdminTrackingPage() {
   };
 
   const stats = {
-    total:       results.length,
+    total:       totalTracked || results.length,
     identified:  results.filter(r => getEffectiveStatus(r) === 'identified').length,
     needsReview: results.filter(r => getEffectiveStatus(r) === 'needs_review').length,
     notFound:    results.filter(r => getEffectiveStatus(r) === 'not_found').length,
